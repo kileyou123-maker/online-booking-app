@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上預約與管理系統 - 本機儲存版</title>
+    <style>
+        /* ------------------------------------------- */
+        /* 1. 通用與容器優化設定 */
+        /* ------------------------------------------- */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f9fc;
+            line-height: 1.6;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .dashboard-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            background-color: white;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.03);
+            min-height: 70vh;
+        }
+
+        h1 {
+            color: #1e3a8a;
+            font-size: 2.4em;
+            margin-bottom: 35px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        h2 {
+            color: #1e3a8a;
+            font-size: 1.6em;
+            border-bottom: 1px solid #e0e7ff;
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+
+        /* ------------------------------------------- */
+        /* 2. 導航欄與步驟指示器 */
+        /* ------------------------------------------- */
+        .main-nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 18px 0;
+            width: 100%;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .main-nav button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #4b5563;
+            padding: 0 10px 15px 10px;
+            font-weight: 500;
+            font-size: 1em;
+            transition: color 0.3s ease-out;
+        }
+
+        .main-nav button:hover {
+            color: #2563eb;
+        }
+
+        .main-nav button.active {
+            color: #1e3a8a;
+            border-bottom: 3px solid #1e3a8a;
+            font-weight: 600;
+        }
+
+        .booking-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 50px;
+        }
+
+        .step-indicator {
+            padding: 10px 15px;
+            border-radius: 50px;
+            color: #9ca3af;
+            background-color: #e5e7eb;
+            margin: 0 10px;
+            font-weight: 600;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .step-indicator.active {
+            background-color: #1e3a8a;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* ------------------------------------------- */
+        /* 3. 步驟內容區與表單元素美化 (Client View) */
+        /* ------------------------------------------- */
+
+        /* 步驟內容容器 - 恢復單獨顯示模式，增加外觀邊框 */
+        .step-content {
+            padding: 30px;
+            padding-bottom: 80px; /* 留給底部按鈕空間 */
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            background-color: white;
+            position: relative; /* 確保按鈕定位正常 */
+        }
+        
+        /* 替換滑動動畫的 CSS - 淡入淡出效果 */
+        .fade-out {
+            opacity: 0;
+            transform: scale(0.98);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            display: block !important; /* 暫時保持 block 讓動畫播放 */
+            pointer-events: none; /* 禁用點擊 */
+            position: absolute; /* 讓新的步驟可以覆蓋上來 */
+            width: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .fade-in {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 0.3s ease-in 0.1s, transform 0.3s ease-in 0.1s; /* 延遲淡入，創造平順感 */
+            position: relative;
+            z-index: 10;
+        }
+        /* ------------------------------------------- */
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .step-content input[type="text"],
+        .step-content input[type="email"],
+        .step-content input[type="password"] {
+            width: 100%;
+            max-width: 400px; 
+            padding: 14px 15px;
+            margin-bottom: 20px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+            color: #333;
+            transition: all 0.3s;
+        }
+        
+        .step-content select {
+            max-width: 400px; 
+            width: 100%; 
+            padding: 14px 15px;
+            margin-bottom: 20px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+            color: #333;
+            transition: all 0.3s;
+        }
+
+
+        .step-content input:focus,
+        .step-content select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            outline: none;
+        }
+
+        .button-group {
+            /* 修正按鈕組件定位，使用絕對定位在底部，這是最穩定的方式 */
+            position: absolute; 
+            bottom: 30px; /* 距離底部保持一致 */
+            left: 30px;
+            right: 30px;
+            
+            display: flex;
+            justify-content: flex-start; /* 預設靠左對齊 */
+            align-items: center;
+            gap: 15px; 
+        }
+        
+        /* 處理 Step 2 & 3 需要 '上一步' 按鈕時 */
+        .button-group.space-between {
+            justify-content: space-between;
+        }
+        
+        /* 讓 Admin Login 的按鈕組件置中 */
+        #admin-login-form .button-group {
+             position: relative;
+             bottom: auto;
+             left: auto;
+             right: auto;
+             margin-top: 30px;
+             padding-bottom: 0;
+             justify-content: center;
+        }
+        
+        /* 確保步驟 1 的按鈕組件與表單對齊 (靠左) */
+        #step1 .button-group {
+            justify-content: flex-start;
+        }
+
+        /* ------------------------------------------- */
+        /* 按鈕樣式定義 (優化後) */
+        /* ------------------------------------------- */
+
+        .step-content button, #admin-login-btn, #admin-logout-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-content button:not([disabled]):hover,
+        #admin-login-btn:not([disabled]):hover, #admin-logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .step-content button:not([disabled]):active,
+        #admin-login-btn:not([disabled]):active, #admin-logout-btn:active {
+            transform: scale(0.98);
+            box-shadow: 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 主要行動 */
+        .step-content button[onclick*="nextStep(2)"],
+        .step-content button[onclick*="nextStep(3)"],
+        #admin-login-btn {
+            background: linear-gradient(145deg, #10b981, #059669);
+            color: white;
+            box-shadow: 4px 15px rgba(16, 185, 129, 0.5);
+            border: 1px solid #059669;
+        }
+
+        /* 最終確認預約按鈕 - 紅色 (稍作調整) */
+        .step-content button[onclick*="submitBooking"] {
+            background-color: #ef4444; 
+            color: white;
+            box-shadow: 4px 15px rgba(239, 68, 68, 0.5);
+            border: 1px solid #c83232;
+        }
+
+        /* 次要行動 (上一步) - 淺灰色帶藍邊 */
+        .step-content button[onclick*="nextStep(1)"],
+        .step-content button[onclick*="nextStep(2)"] {
+            background-color: #ffffff; 
+            color: #1e3a8a;
+            border: 1px solid #bfdbfe;
+            box-shadow: none;
+        }
+        
+        /* 管理員登出按鈕 - 強烈紅色 */
+        #admin-logout-btn {
+            background-color: #dc2626;
+            color: white;
+            box-shadow: 4px 15px rgba(220, 38, 38, 0.5);
+            border: 1px solid #b91c1c;
+        }
+        
+        /* 禁用按鈕 */
+        .step-content button:disabled,
+        #admin-login-btn:disabled {
+            background: #d1d5db !important;
+            cursor: not-allowed;
+            color: #9ca3af !important;
+            box-shadow: none !important;
+            transform: none !important;
+            border: none !important;
+        }
+
+        /* ------------------------------------------- */
+        /* 5. 自定義訊息框 (取代 Alert) */
+        /* ------------------------------------------- */
+        .message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fff;
+            color: #1e3a8a;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            font-weight: 600;
+        }
+        
+        .message-box.show {
+            display: block;
+            opacity: 1;
+        }
+        /* ------------------------------------------- */
+        /* 6. 其他元素樣式 (保持不變) */
+        /* ------------------------------------------- */
+
+        /* Summary UI */
+        #step3 ul li {
+            background-color: #f4f7fc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #3b82f6;
+            font-size: 1.05em;
+        }
+
+        #step3 ul li strong {
+            color: #1e3a8a;
+        }
+        
+        /* 管理員介面樣式 */
+        .loading-text {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+            font-style: italic;
+        }
+        
+        .booking-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .booking-table th, .booking-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e7ff;
+        }
+
+        .booking-table th {
+            background-color: #e0e7ff;
+            color: #1e3a8a;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .booking-table tr:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 訊息框 -->
+<div class="message-box" id="custom-message-box"></div>
+
+<div class="main-nav">
+    <button id="nav-client" onclick="switchView('client')" class="active">客戶預約</button>
+    <button id="nav-admin" onclick="switchView('admin')">管理員登入</button>
+</div>
+
+<div class="dashboard-container">
+    
+    <!-- 1. 客戶預約介面 -->
+    <div id="client-view">
+        <h1>🗓️ 線上預約服務</h1>
+        <!-- 步驟指示器 -->
+        <div class="booking-steps">
+            <span class="step-indicator active" id="step1-indicator">1. 選擇服務</span>
+            <span class="step-indicator" id="step2-indicator">2. 選擇時段</span>
+            <span class="step-indicator" id="step3-indicator">3. 確認預約</span>
+        </div>
+
+        <!-- 移除 steps-container/wrapper，步驟內容獨立顯示/隱藏 -->
+        <!-- 由於 height 變化，我們需要一個容器來控制高度過渡，但不需要 wrapper -->
+        <div class="steps-container" id="steps-container" style="position: relative;">
+            
+            <div class="step-content fade-in" id="step1" style="display: block;">
+                <h2>選擇服務項目</h2>
+                <p>請選擇您需要的服務類型，以便為您顯示準確的時長和價格。</p>
+                <select id="service-select">
+                    <option value="">-- 請選擇服務 --</option>
+                    <option value="60" data-name="一小時專業顧問" data-price="2000">一小時專業顧問 (NT$ 2000)</option>
+                    <option value="90" data-name="90 分鐘深度諮詢" data-price="2800">90 分鐘深度諮詢 (NT$ 2800)</option>
+                    <option value="120" data-name="半天工作坊" data-price="4000">半天工作坊 (NT$ 4000)</option>
+                    </select>
+                
+                <div class="button-group"> 
+                    <button onclick="nextStep(2)">下一步</button>
+                </div>
+            </div>
+
+            <div class="step-content" id="step2" style="display: none;">
+                <h2>選擇日期與時間</h2>
+                <p>您選擇的服務時長為：<span id="duration-display" style="font-weight: bold; color: #ef4444;"></span> 分鐘。</p>
+                
+                <label for="date-select">選擇可預約日期：</label>
+                <select id="date-select" onchange="renderTimeSlots()">
+                </select>
+                
+                <label for="time-slot-select" style="margin-top: 10px;">選擇可預約時間：</label>
+                <select id="time-slot-select" onchange="selectTimeSlot(this)">
+                    <option value="" disabled selected>-- 請先選擇日期 --</option>
+                </select>
+
+                <div class="button-group space-between">
+                    <button onclick="nextStep(1)">上一步</button>
+                    <button onclick="nextStep(3)" id="confirm-time-button" disabled>確認時段</button>
+                </div>
+            </div>
+
+            <div class="step-content" id="step3" style="display: none;">
+                <h2>確認資訊與預約</h2>
+                
+                <p>請確認您的預約詳情：</p>
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>服務項目：：</strong> <span id="summary-service" style="font-weight: bold;"></span></li>
+                    <li><strong>預約時段：</strong> <span id="summary-datetime" style="font-weight: bold;"></span></li>
+                </ul>
+
+                <label for="client-name">姓名:</label>
+                <input type="text" id="client-name" placeholder="請輸入您的姓名" required>
+
+                <label for="client-email">Email:</label>
+                <input type="email" id="client-email" placeholder="請輸入有效的Email地址" required>
+                
+                <div class="button-group space-between">
+                    <button onclick="nextStep(2)">上一步</button>
+                    <button onclick="submitBooking()">✅ 確認送出預約</button>
+                </div>
+            </div>
+
+        </div> <!-- /.steps-container 結束標籤，現在它是單個步驟的容器 -->
+    </div>
+    
+    <!-- 2. 管理員介面 (登入與儀表板) -->
+    <div id="admin-view" style="display: none;">
+        <h1>🔑 管理員登入</h1>
+        
+        <!-- 登入表單 -->
+        <div id="admin-login-form" class="step-content">
+            <!-- 初始載入/提示訊息 -->
+            <p id="admin-login-message" class="loading-text" style="color:#374151; padding: 15px 0;">
+                請輸入管理員密碼 (Demo: admin123)。
+            </p>
+            
+            <label for="admin-password">密碼 (Demo: admin123):</label>
+            <input type="password" id="admin-password" placeholder="輸入管理員密碼" required>
+            
+            <div class="button-group">
+                <button id="admin-login-btn" onclick="adminLogin()">登入管理儀表板</button>
+            </div>
+            <p id="login-error" style="color: #ef4444; margin-top: 20px; display: none;">密碼錯誤，請再試一次。</p>
+        </div>
+
+        <!-- 儀表板 (登入成功後顯示) -->
+        <div id="admin-dashboard" class="step-content" style="display: none;">
+            <div class="admin-header">
+                <h2>所有預約記錄 (本機儲存)</h2>
+                <button id="admin-logout-btn" onclick="adminLogout()">登出</button>
+            </div>
+            <div id="bookings-list">
+                <p style="text-align: center; color: #666;">載入預約資料中...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ----------------------------------------------------
+    // LOCAL STORAGE FALLBACK (取代 Firebase)
+    // ----------------------------------------------------
+    
+    // 檢查核心變數是否已初始化，防止環境重複執行導致的衝突
+    if (typeof window.nextStep === 'undefined') {
+        
+        // 將所有邏輯包裹在一個 IIFE 中以確保作用域獨立性
+        (function() {
+            let isAdmin = false;
+            let currentStep = 1;
+            let selectedServiceDuration = 0;
+            let selectedServiceName = '';
+            let selectedDate = '';
+            let selectedTime = '';
+
+            // 靜態可用時段資料 (使用 const 宣告在 IIFE 內部)
+            const availableSlots = {
+                '2025-12-10': ['10:00', '11:30', '14:00', '15:30'],
+                '2025-12-11': ['09:00', '11:00', '13:00', '14:30'],
+                '2025-12-12': ['10:30', '12:00', '16:00'],
+                '2025-12-13': ['10:00', '14:00', '15:30'],
+                '2025-12-14': ['11:00', '15:00'],
+            };
+            
+            // --- Message Box Function (Replaces alert()) ---
+            function showMessage(message, type = 'info') {
+                const msgBox = document.getElementById('custom-message-box');
+                msgBox.textContent = message;
+                msgBox.className = 'message-box show'; 
+                
+                if (type === 'error') {
+                    msgBox.style.backgroundColor = '#fef2f2';
+                    msgBox.style.color = '#ef4444';
+                } else if (type === 'success') {
+                    msgBox.style.backgroundColor = '#ecfdf5';
+                    msgBox.style.color = '#10b981';
+                } else {
+                    msgBox.style.backgroundColor = '#eff6ff';
+                    msgBox.style.color = '#1e3a8a';
+                }
+
+                setTimeout(() => {
+                    msgBox.classList.remove('show');
+                }, 3000);
+            }
+            
+            /**
+             * 調整步驟容器的高度，以匹配當前步驟的內容高度。
+             * @param {number} step - 當前步驟編號 (1, 2, 或 3)。
+             */
+            function adjustContainerHeight(step) {
+                const stepElement = document.getElementById(`step${step}`);
+                const container = document.getElementById('steps-container');
+                
+                if (stepElement && container) {
+                    const newHeight = stepElement.clientHeight; 
+                    container.style.height = `${newHeight}px`;
+                }
+            }
+
+
+            // --- 步驟切換函數 (改用淡入淡出邏輯) ---
+            window.nextStep = function(step) {
+                const serviceSelect = document.getElementById('service-select');
+                
+                if (step < 1 || step > 3) return;
+
+                // 步驟檢查與數據傳遞
+                if (step === 2) {
+                    const duration = parseInt(serviceSelect.value);
+                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                    
+                    if (!duration) {
+                        showMessage("請先選擇服務項目！", 'error');
+                        return;
+                    }
+                    selectedServiceDuration = duration;
+                    selectedServiceName = selectedOption.getAttribute('data-name');
+                    document.getElementById('duration-display').textContent = duration;
+                    initDateSelect(); 
+                }
+                
+                if (step === 3) {
+                    if (!selectedDate || !selectedTime) {
+                        showMessage("請選擇日期和時間！", 'error');
+                        return;
+                    }
+                    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                    document.getElementById('summary-service').textContent = selectedOption.getAttribute('data-name') + ' (' + selectedOption.getAttribute('data-price') + ')';
+                    document.getElementById('summary-datetime').textContent = `${selectedDate} ${selectedTime}`;
+                }
+                
+                // 1. 調整高度到目標步驟的高度 (先調整高度，再播放淡入淡出)
+                adjustContainerHeight(step);
+                
+                const currentEl = document.getElementById(`step${currentStep}`);
+                const nextEl = document.getElementById(`step${step}`);
+
+                // 2. 應用 fade-out 效果
+                if (currentEl && currentEl !== nextEl) {
+                    currentEl.classList.add('fade-out');
+                }
+
+                // 3. 延遲後移除舊步驟，顯示新步驟 (配合 CSS transition 0.3s)
+                setTimeout(() => {
+                    if (currentEl && currentEl !== nextEl) {
+                        currentEl.style.display = 'none';
+                        currentEl.classList.remove('fade-out');
+                    }
+                    
+                    // 確保新元素是 block，並應用 fade-in 效果
+                    nextEl.style.display = 'block';
+                    nextEl.classList.add('fade-in');
+
+                    // 移除 fade-in 效果，為下次動畫準備
+                    setTimeout(() => {
+                        nextEl.classList.remove('fade-in');
+                    }, 400); // 略長於 CSS 上的 0.35s 延遲
+
+                }, 300); // 確保 fade-out 已經完成
+                
+                // 更新步驟指示器
+                document.getElementById(`step${currentStep}-indicator`).classList.remove('active');
+                currentStep = step;
+                document.getElementById(`step${currentStep}-indicator`).classList.add('active');
+            }
+
+
+            // --- View Switching ---
+            window.switchView = function(view) {
+                // 切換主視圖的 display 屬性
+                document.getElementById('client-view').style.display = view === 'client' ? 'block' : 'none';
+                document.getElementById('admin-view').style.display = view === 'admin' ? 'block' : 'none';
+
+                // 更新導航列狀態
+                document.getElementById('nav-client').classList.remove('active');
+                document.getElementById('nav-admin').classList.remove('active');
+                document.getElementById(`nav-${view}`).classList.add('active');
+
+                if (view === 'admin' && isAdmin) {
+                    loadAdminDashboard();
+                } else if (view === 'admin' && !isAdmin) {
+                    // Show login form if admin view is requested but not logged in
+                    document.getElementById('admin-dashboard').style.display = 'none';
+                    document.getElementById('admin-login-form').style.display = 'block';
+                }
+                
+                // Ensure client view step 1 is visible when switching back 
+                if (view === 'client') {
+                    // 隱藏所有步驟，然後只顯示步驟 1
+                    document.getElementById('step1').style.display = 'block';
+                    document.getElementById('step2').style.display = 'none';
+                    document.getElementById('step3').style.display = 'none';
+
+                    // 重置步驟指示器和當前步驟
+                    document.querySelectorAll('.step-indicator').forEach(el => el.classList.remove('active'));
+                    document.getElementById('step1-indicator').classList.add('active');
+                    currentStep = 1;
+                    
+                    // 立即調整到步驟 1 的高度
+                    adjustContainerHeight(1); 
+                }
+            }
+
+            // --- Admin Login/Logout ---
+            window.adminLogin = function() {
+                const password = document.getElementById('admin-password').value;
+                const errorEl = document.getElementById('login-error');
+                
+                // HARDCODED DEMO PASSWORD
+                if (password === 'admin123') { 
+                    isAdmin = true;
+                    errorEl.style.display = 'none';
+                    loadAdminDashboard();
+                    showMessage('登入成功！歡迎，管理員。', 'success');
+                } else {
+                    errorEl.style.display = 'block';
+                    showMessage('登入失敗，密碼錯誤。', 'error');
+                }
+            }
+            
+            window.adminLogout = function() {
+                isAdmin = false;
+                document.getElementById('admin-dashboard').style.display = 'none';
+                document.getElementById('admin-login-form').style.display = 'block';
+                document.getElementById('admin-password').value = '';
+                showMessage('已登出管理員帳號。', 'info');
+            }
+
+            // --- Admin Dashboard Load (Local Storage) ---
+            function loadAdminDashboard() {
+                if (!isAdmin) return;
+                
+                document.getElementById('admin-login-form').style.display = 'none';
+                document.getElementById('admin-dashboard').style.display = 'block';
+                
+                const bookingsList = document.getElementById('bookings-list');
+                
+                try {
+                    // 從 localStorage 讀取數據
+                    const bookingsJson = localStorage.getItem('clientBookings') || '[]';
+                    let bookings = JSON.parse(bookingsJson);
+                    
+                    // 將資料轉換為陣列並在記憶體中排序 (由新到舊)
+                    const sortedDocs = bookings
+                        .sort((a, b) => {
+                            // 根據 timestamp 欄位，由新到舊排序
+                            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+                        });
+
+
+                    if (sortedDocs.length === 0) {
+                        bookingsList.innerHTML = '<p style="text-align: center; color: #666; padding: 30px;">目前沒有任何預約記錄。</p>';
+                        return;
+                    }
+
+                    let html = `
+                        <table class="booking-table">
+                            <thead>
+                                <tr>
+                                    <th>預約時間</th>
+                                    <th>客戶姓名/Email</th>
+                                    <th>服務項目</th>
+                                    <th>狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    sortedDocs.forEach(data => {
+                        const date = new Date(data.timestamp).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' });
+                        
+                        html += `
+                            <tr>
+                                <td>${data.datetime} (${date})</td>
+                                <td>${data.name}<br><small style="color:#6b7280;">${data.email}</small></td>
+                                <td>${data.service}</td>
+                                <td style="color: ${data.status === 'Confirmed' ? '#10b981' : '#f59e0b'};">${data.status}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    bookingsList.innerHTML = html;
+                } catch (e) {
+                    console.error("Error loading local storage bookings:", e);
+                    bookingsList.innerHTML = `<p style="color: #ef4444; text-align: center;">載入資料失敗：本機儲存資料格式錯誤。</p>`;
+                }
+            }
+
+            // ----------------------------------------------------
+            // Client Side Logic
+            // ----------------------------------------------------
+            
+            window.initDateSelect = function() {
+                const dateSelect = document.getElementById('date-select');
+                // Clear options except the first placeholder
+                dateSelect.innerHTML = '<option value="">-- 請選擇日期 --</option>';
+
+                Object.keys(availableSlots).sort().forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    dateSelect.appendChild(option);
+                });
+                renderTimeSlots();
+            }
+
+            // 渲染時間到 SELECT 選單
+            window.renderTimeSlots = function() {
+                const dateSelect = document.getElementById('date-select');
+                selectedDate = dateSelect.value;
+                const timeSlotsContainer = document.getElementById('time-slot-select');
+                
+                // 重置選單
+                timeSlotsContainer.innerHTML = '<option value="" disabled selected>-- 請選擇時間 --</option>';
+                
+                selectedTime = '';
+                document.getElementById('confirm-time-button').disabled = true;
+                
+                if (!selectedDate) {
+                    // 如果沒有選擇日期，選單保持預設狀態
+                    return;
+                }
+
+                const slots = availableSlots[selectedDate] || [];
+                
+                if (slots.length === 0) {
+                    timeSlotsContainer.innerHTML = '<option value="" disabled selected>該日期沒有可用時段</option>';
+                    return;
+                }
+
+                // 添加時段選項
+                slots.forEach(time => {
+                    const option = document.createElement('option');
+                    option.value = time;
+                    option.textContent = time;
+                    timeSlotsContainer.appendChild(option);
+                });
+                
+                // 確保在渲染時間選單後，當前步驟 2 的高度被正確調整
+                adjustContainerHeight(2); 
+            }
+
+            // 處理 SELECT 選單的選擇變化
+            window.selectTimeSlot = function(element) {
+                selectedTime = element.value;
+                document.getElementById('confirm-time-button').disabled = !selectedTime;
+            }
+
+            window.submitBooking = function() {
+                
+                const name = document.getElementById('client-name').value.trim();
+                const email = document.getElementById('client-email').value.trim();
+                const serviceSelect = document.getElementById('service-select');
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                const servicePrice = selectedOption.getAttribute('data-price');
+                
+                if (!name || !email) {
+                    showMessage("請填寫您的姓名和 Email！", 'error');
+                    return;
+                }
+                if (!/\S+@\S+\.\S+/.test(email)) {
+                    showMessage("請輸入有效的 Email 地址！", 'error');
+                    return;
+                }
+                
+                // ** Local Storage 儲存邏輯 **
+                const bookingDetails = {
+                    name: name,
+                    email: email,
+                    service: selectedServiceName,
+                    duration: selectedServiceDuration,
+                    price: parseInt(servicePrice),
+                    datetime: `${selectedDate} ${selectedTime}`,
+                    status: 'Confirmed', 
+                    timestamp: new Date().toISOString(),
+                };
+                
+                try {
+                    // 讀取現有預約，加入新預約，再儲存
+                    let bookings = JSON.parse(localStorage.getItem('clientBookings') || '[]');
+                    bookings.push(bookingDetails);
+                    localStorage.setItem('clientBookings', JSON.stringify(bookings));
+
+                    showMessage(`🎉 預約成功！您的預約已記錄。`, 'success');
+                    
+                    // 清空表單並返回第一步
+                    setTimeout(() => {
+                        window.location.reload(); 
+                    }, 1000);
+                    
+                } catch (e) {
+                    console.error("Error saving to local storage: ", e);
+                    showMessage(`預約失敗：無法儲存到本機記憶體。`, 'error');
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                // 初始載入時，調整到步驟 1 的高度
+                adjustContainerHeight(1);
+                
+                // Initial view load based on hash (optional, defaults to client)
+                const initialView = window.location.hash.substring(1) || 'client';
+                switchView(initialView);
+            });
+        })(); // 立即執行函數結束
+    }
+</script>
+</body>
+</html>
