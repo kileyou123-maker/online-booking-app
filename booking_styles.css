@@ -1,0 +1,247 @@
+/**
+ * booking_styles.css
+ * 最終專業美化版：完整整合動畫、美觀排版及按鈕佈局
+ */
+
+/* ------------------------------------------- */
+/* 1. 通用與容器優化設定                       */
+/* ------------------------------------------- */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f7f9fc; 
+    line-height: 1.6;
+    box-sizing: border-box; 
+}
+
+/* 容器優化：柔和陰影、圓角 */
+.dashboard-container {
+    max-width: 750px; 
+    margin: 40px auto; 
+    padding: 40px;
+    background-color: white;
+    border-radius: 18px; 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.03); 
+}
+
+h1 {
+    color: #1e3a8a; 
+    font-size: 2.4em; 
+    margin-bottom: 35px;
+    font-weight: 700;
+}
+
+h2 {
+    color: #1e3a8a;
+    font-size: 1.6em;
+    border-bottom: 1px solid #e0e7ff; 
+    padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 25px;
+}
+
+/* ------------------------------------------- */
+/* 2. 導航欄與步驟指示器 (美化與動畫)          */
+/* ------------------------------------------- */
+.main-nav {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 18px 0;
+    width: 100%; 
+    background-color: #ffffff; 
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: sticky; 
+    top: 0;
+    z-index: 1000; 
+    margin-bottom: 0; 
+}
+
+.main-nav .nav-link {
+    color: #4b5563; 
+    text-decoration: none;
+    padding: 0 10px 15px 10px; 
+    font-weight: 500;
+    /* 動畫：顏色和移動效果 */
+    transition: color 0.3s ease-out, transform 0.1s; 
+}
+
+.main-nav .nav-link:hover {
+    color: #2563eb; 
+    transform: translateY(-2px); 
+}
+
+.main-nav .nav-link.active {
+    color: #1e3a8a;
+    border-bottom: 3px solid #1e3a8a; 
+    background: none; 
+    font-weight: 600;
+    transform: none; 
+}
+
+/* 步驟指示器動畫 */
+.booking-steps {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 50px;
+}
+
+.step-indicator {
+    padding: 10px 15px;
+    border-radius: 50px;
+    color: #9ca3af;
+    background-color: #e5e7eb;
+    margin: 0 10px;
+    font-weight: 600;
+    /* 動畫：顏色過渡和輕微放大 */
+    transition: background-color 0.3s, color 0.3s, transform 0.2s; 
+}
+
+.step-indicator.active {
+    background-color: #1e3a8a; 
+    color: white;
+    transform: scale(1.05); 
+}
+
+/* ------------------------------------------- */
+/* 3. 步驟內容區與表單元素美化                 */
+/* ------------------------------------------- */
+.step-content {
+    background-color: #ffffff;
+    padding: 30px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding-bottom: 80px; /* 留給底部按鈕空間 */
+    position: relative; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* 表單元素美化 */
+.step-content input[type="text"],
+.step-content input[type="email"],
+.step-content select {
+    width: 100%;
+    padding: 14px 15px; 
+    margin-bottom: 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1em;
+    color: #333; 
+    transition: all 0.3s;
+}
+
+.step-content input:focus,
+.step-content select:focus {
+    border-color: #2563eb; 
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); 
+    outline: none;
+}
+
+/* ------------------------------------------- */
+/* 4. 按鈕群組排版與動畫 (Buttons Layout & Animation) */
+/* ------------------------------------------- */
+.button-group {
+    /* 關鍵：定位在步驟內容的底部，並控制按鈕間距 */
+    position: absolute;
+    bottom: 25px; 
+    left: 30px;
+    right: 30px;
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+}
+
+/* 處理 Step 1 只有一個按鈕時靠右對齊 */
+.button-group:not(:has(button[onclick*="nextStep(1)"])) {
+    justify-content: flex-end;
+}
+
+.step-content button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700; 
+    cursor: pointer;
+    /* 動畫：按鈕顏色和縮放過渡 */
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.step-content button:not([disabled]):hover {
+    transform: translateY(-1px); 
+}
+
+.step-content button:not([disabled]):active {
+    transform: scale(0.98); 
+}
+
+/* 主要行動 (下一步/確認時段) - 綠色 */
+.step-content button:not([disabled])[onclick*="nextStep(2)"],
+.step-content button:not([disabled])[onclick*="nextStep(3)"] {
+    background-color: #10b981; 
+    color: white;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); 
+}
+
+/* 最終確認預約按鈕 - 紅色 */
+.step-content button[onclick*="submitBooking"] {
+    background-color: #ef4444; 
+    color: white;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); 
+}
+
+/* 次要行動 (上一步) - 淺灰色 */
+.step-content button[onclick*="nextStep(1)"],
+.step-content button[onclick*="nextStep(2)"] {
+    background-color: #f3f4f6; 
+    color: #4b5563;
+    box-shadow: none;
+}
+
+.step-content button:disabled {
+    background-color: #d1d5db !important;
+    cursor: not-allowed;
+    color: #9ca3af !important;
+    box-shadow: none;
+    transform: none;
+}
+
+/* ------------------------------------------- */
+/* 5. 時段選擇動畫 (Time Slot Animation)       */
+/* ------------------------------------------- */
+#time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+    gap: 12px;
+}
+
+.time-slot {
+    /* ... 保持不變，已包含動畫過渡 ... */
+    transition: all 0.2s ease-in-out; 
+}
+
+.time-slot:hover:not(.unavailable) {
+    transform: scale(1.02); 
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.time-slot.selected {
+    transform: scale(1.04); 
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* ------------------------------------------- */
+/* 6. 確認摘要區優化 (Summary)                 */
+/* ------------------------------------------- */
+#step3 ul li {
+    background-color: #f4f7fc;
+    padding: 15px; 
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border-left: 4px solid #3b82f6; 
+    font-size: 1.05em;
+}
+
+#step3 ul li strong {
+    color: #1e3a8a; 
+}
