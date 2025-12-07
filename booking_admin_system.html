@@ -374,8 +374,8 @@
 <div class="message-box" id="custom-message-box"></div>
 
 <div class="main-nav">
-    <button id="nav-client" onclick="switchView('client')" class="active">客戶預約</button>
-    <button id="nav-admin" onclick="switchView('admin')">管理員登入</button>
+    <button id="nav-client" onclick="nextStep(1); switchView('client');" class="active">客戶預約</button>
+    <button id="nav-admin" onclick="switchView('admin');">管理員登入</button>
 </div>
 
 <div class="dashboard-container">
@@ -490,7 +490,7 @@
     // LOCAL STORAGE FALLBACK (取代 Firebase)
     // ----------------------------------------------------
     
-    // 檢查核心變數是否已初始化，防止環境重複執行導致的衝突
+    // 檢查 window.nextStep 是否已存在，防止程式碼被環境重複執行
     if (typeof window.nextStep === 'undefined') {
         
         // 將所有邏輯包裹在一個 IIFE 中以確保作用域獨立性
@@ -549,7 +549,7 @@
 
 
             // --- 步驟切換函數 (改用淡入淡出邏輯) ---
-            window.nextStep = function(step) {
+            function nextStep(step) {
                 const serviceSelect = document.getElementById('service-select');
                 
                 if (step < 1 || step > 3) return;
@@ -616,7 +616,7 @@
 
 
             // --- View Switching ---
-            window.switchView = function(view) {
+            function switchView(view) {
                 // 切換主視圖的 display 屬性
                 document.getElementById('client-view').style.display = view === 'client' ? 'block' : 'none';
                 document.getElementById('admin-view').style.display = view === 'admin' ? 'block' : 'none';
@@ -652,7 +652,7 @@
             }
 
             // --- Admin Login/Logout ---
-            window.adminLogin = function() {
+            function adminLogin() {
                 const password = document.getElementById('admin-password').value;
                 const errorEl = document.getElementById('login-error');
                 
@@ -668,7 +668,7 @@
                 }
             }
             
-            window.adminLogout = function() {
+            function adminLogout() {
                 isAdmin = false;
                 document.getElementById('admin-dashboard').style.display = 'none';
                 document.getElementById('admin-login-form').style.display = 'block';
@@ -741,11 +741,9 @@
                 }
             }
 
-            // ----------------------------------------------------
-            // Client Side Logic
-            // ----------------------------------------------------
+            // --- Client Side Logic ---
             
-            window.initDateSelect = function() {
+            function initDateSelect() {
                 const dateSelect = document.getElementById('date-select');
                 // Clear options except the first placeholder
                 dateSelect.innerHTML = '<option value="">-- 請選擇日期 --</option>';
@@ -760,7 +758,7 @@
             }
 
             // 渲染時間到 SELECT 選單
-            window.renderTimeSlots = function() {
+            function renderTimeSlots() {
                 const dateSelect = document.getElementById('date-select');
                 selectedDate = dateSelect.value;
                 const timeSlotsContainer = document.getElementById('time-slot-select');
@@ -796,12 +794,12 @@
             }
 
             // 處理 SELECT 選單的選擇變化
-            window.selectTimeSlot = function(element) {
+            function selectTimeSlot(element) {
                 selectedTime = element.value;
                 document.getElementById('confirm-time-button').disabled = !selectedTime;
             }
 
-            window.submitBooking = function() {
+            function submitBooking() {
                 
                 const name = document.getElementById('client-name').value.trim();
                 const email = document.getElementById('client-email').value.trim();
@@ -848,6 +846,16 @@
                     showMessage(`預約失敗：無法儲存到本機記憶體。`, 'error');
                 }
             }
+
+            // 在 IIFE 內部將所有函數暴露給 window
+            window.nextStep = nextStep;
+            window.switchView = switchView;
+            window.adminLogin = adminLogin;
+            window.adminLogout = adminLogout;
+            window.initDateSelect = initDateSelect;
+            window.renderTimeSlots = renderTimeSlots;
+            window.selectTimeSlot = selectTimeSlot;
+            window.submitBooking = submitBooking;
 
             document.addEventListener('DOMContentLoaded', () => {
                 // 初始載入時，調整到步驟 1 的高度
